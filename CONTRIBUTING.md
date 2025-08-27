@@ -49,3 +49,38 @@ gitGraph
    checkout develop
    merge hotfix/1.0.1
 ```
+
+## 2. Convenciones de commits
+
+Todos los commits deben seguir el estándar de **Conventional Commits**.
+Formato básico:
+
+```
+<tipo>: <descripción breve>
+```
+
+Tipos aceptados:
+
+* **feat**: nueva funcionalidad
+* **fix**: corrección de un error
+* **docs**: cambios en documentación
+* **style**: cambios de formato (espacios, comas, etc.) sin alterar lógica
+* **refactor**: cambios en el código sin modificar comportamiento
+* **test**: adición o corrección de pruebas
+* **chore**: tareas de mantenimiento (build, dependencias, etc.)
+* **ci**: cambios en configuración de integración continua
+* **build**: cambios que afectan el sistema de compilación o dependencias externas
+
+
+## 3. Reglas para Pull Requests
+
+* Los PRs deben ser creados desde:
+
+  * `feature/*` → `develop`
+  * `release/*` → `main` y `develop`
+  * `hotfix/*` → `main` y `develop`
+* Cada PR debe:
+
+  * Incluir una descripción clara de los cambios.
+  * Requerir al menos una aprobación de otro miembro del equipo.
+  * Pasar los checks automáticos configurados (lint, tests, convenciones).
