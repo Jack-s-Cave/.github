@@ -2,16 +2,28 @@ name: branch-source
 on:
   workflow_call:
     inputs:
-      # Permite ajustar los patrones si algún repo los quiere extender
+      # Acepta:
+      # - feature/descripcion-descripcion
+      # - feature/TICKET-123-descripcion-descripcion
+      # - feature/TICKET-123/descripcion-descripcion
       feature_pattern:
         type: string
-        default: '^feature\/[a-z0-9-]+$'
+        default: '^feature\/((?:[A-Z][A-Z0-9]+-\d+[-\/])?[a-z0-9]+(?:-[a-z0-9]+)*)$'
+        description: Expresión regular para validar ramas de características
+
+      # Acepta:
+      # - release/x.y.z
       release_pattern:
         type: string
         default: '^release\/[0-9]+\.[0-9]+\.[0-9]+$'
+        description: Expresión regular para validar ramas de lanzamiento
+
+      # Acepta:
+      # - hotfix/x.y.z
       hotfix_pattern:
         type: string
         default: '^hotfix\/[0-9]+\.[0-9]+\.[0-9]+$'
+        description: Expresión regular para validar ramas de corrección
 
 jobs:
   branch-source:
@@ -26,7 +38,12 @@ jobs:
           RELEASE_RE='${{ inputs.release_pattern }}'
           HOTFIX_RE='${{ inputs.hotfix_pattern }}'
 
-          echo "Validando origen: HEAD='$HEAD' → BASE='$BASE'"
+          echo "[INFO] Validando origen de PR"
+          echo "   HEAD='$HEAD'"
+          echo "   BASE='$BASE'"
+          echo "   FEATURE_RE=$FEATURE_RE"
+          echo "   RELEASE_RE=$RELEASE_RE"
+          echo "   HOTFIX_RE=$HOTFIX_RE"
 
           ok="false"
           case "$BASE" in
@@ -41,17 +58,17 @@ jobs:
               fi
               ;;
             *)
-              # Para otras ramas base, no aplicamos restricción
+              # Para otras bases, no aplicamos restricción
               ok="true"
               ;;
           esac
 
           if [ "$ok" != "true" ]; then
-            echo "Regla de origen incumplida:"
+            echo "[ERROR] Regla de origen incumplida:"
             echo "   - main solo acepta: release/x.y.z o hotfix/x.y.z"
-            echo "   - develop acepta:   feature/<kebab> o release/x.y.z"
+            echo "   - develop acepta:   feature/<descripcion> o feature/TICKET-123-<descripcion> o release/x.y.z"
             echo "   HEAD='$HEAD'  BASE='$BASE'"
             exit 1
           fi
 
-          echo "✅ Origen de PR válido"
+          echo "[SUCCESS] Origen de PR válido"
