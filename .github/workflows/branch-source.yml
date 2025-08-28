@@ -1,0 +1,57 @@
+name: branch-source
+on:
+  workflow_call:
+    inputs:
+      # Permite ajustar los patrones si algún repo los quiere extender
+      feature_pattern:
+        type: string
+        default: '^feature\/[a-z0-9-]+$'
+      release_pattern:
+        type: string
+        default: '^release\/[0-9]+\.[0-9]+\.[0-9]+$'
+      hotfix_pattern:
+        type: string
+        default: '^hotfix\/[0-9]+\.[0-9]+\.[0-9]+$'
+
+jobs:
+  branch-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enforce PR source branch rules
+        run: |
+          HEAD="${{ github.head_ref }}"
+          BASE="${{ github.base_ref }}"
+
+          FEATURE_RE='${{ inputs.feature_pattern }}'
+          RELEASE_RE='${{ inputs.release_pattern }}'
+          HOTFIX_RE='${{ inputs.hotfix_pattern }}'
+
+          echo "Validando origen: HEAD='$HEAD' → BASE='$BASE'"
+
+          ok="false"
+          case "$BASE" in
+            main)
+              if echo "$HEAD" | grep -Eq "$RELEASE_RE|$HOTFIX_RE"; then
+                ok="true"
+              fi
+              ;;
+            develop)
+              if echo "$HEAD" | grep -Eq "$FEATURE_RE|$RELEASE_RE"; then
+                ok="true"
+              fi
+              ;;
+            *)
+              # Para otras ramas base, no aplicamos restricción
+              ok="true"
+              ;;
+          esac
+
+          if [ "$ok" != "true" ]; then
+            echo "Regla de origen incumplida:"
+            echo "   - main solo acepta: release/x.y.z o hotfix/x.y.z"
+            echo "   - develop acepta:   feature/<kebab> o release/x.y.z"
+            echo "   HEAD='$HEAD'  BASE='$BASE'"
+            exit 1
+          fi
+
+          echo "✅ Origen de PR válido"
