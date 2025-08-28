@@ -5,4 +5,4 @@
 Este repositorio contiene las guías de contribución de la organización.  
 Por favor revisa el siguiente documento antes de trabajar en cualquier repositorio:
 
-👉 [Guía de Contribución](CONTRIBUTING.md)
+👉 [Guía de Contribución](../CONTRIBUTING.md)
