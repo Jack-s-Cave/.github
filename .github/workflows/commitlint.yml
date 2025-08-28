@@ -3,12 +3,14 @@ on:
   workflow_call:
     inputs:
       node-version:
-        required: false
         type: string
         default: '20'
-      # Modo estricto: valida TODOS los commits del PR y TAMBIÉN el título del PR (para squash)
       strict:
-        required: false
+        description: "Valida TODOS los commits del PR"
+        type: boolean
+        default: true
+      check_pr_title:
+        description: "Valida el título del PR"
         type: boolean
         default: true
 
@@ -34,21 +36,21 @@ jobs:
           module.exports = {
             extends: ['@commitlint/config-conventional'],
             rules: {
-              // Permite acentos y texto normal en el subject; evita formatos en mayúsculas tipo título
+              // permite acentos y evita Título Con Mayúsculas En Cada Palabra
               'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case', 'upper-case']],
             },
           };
           EOF
 
       - name: Lint PR commits (strict)
-        if: ${{ inputs.strict == true }}
+        if: ${{ inputs.strict == true && github.event_name == 'pull_request' }}
         run: |
-          BASE="origin/${{ github.base_ref }}"
-          # Obtiene los subjects de commits del PR (HEAD incluye el merge ref del PR)
-          COMMITS=$(git log "$BASE"..HEAD --pretty=%s || true)
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          COMMITS=$(git log --format=%s "${BASE_SHA}..${HEAD_SHA}" || true)
 
           if [ -z "$COMMITS" ]; then
-            echo "No commit subjects found between $BASE and HEAD."
+            echo "No commit subjects found between ${BASE_SHA}..${HEAD_SHA}"
             exit 0
           fi
 
@@ -57,6 +59,7 @@ jobs:
           echo "$COMMITS" | npx commitlint --config commitlint.config.cjs
 
       - name: Lint PR title (useful for squash merge)
+        if: ${{ inputs.check_pr_title == true && github.event_name == 'pull_request' }}
         run: |
           TITLE="${{ github.event.pull_request.title }}"
           echo "PR title: $TITLE"
