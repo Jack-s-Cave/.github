@@ -1,8 +1,11 @@
 name: commitlint-on-push
 on:
-  push:
-    branches: ['**'] # Aplica a todos los pushes en todas las ramas
-
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: '20'
+        
 jobs:
   commitlint:
     runs-on: ubuntu-latest
