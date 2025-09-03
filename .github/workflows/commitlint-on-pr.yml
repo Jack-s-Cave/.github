@@ -1,0 +1,79 @@
+name: commitlint-on-pr
+on:
+  workflow_call:
+    inputs:
+      node-version:
+        type: string
+        default: '20'
+
+      strict:
+        description: "Valida TODOS los commits del PR"
+        type: boolean
+        default: true
+
+      check_pr_title:
+        description: "Valida el título del PR"
+        type: boolean
+        default: true
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      # Instala commitlint
+      - name: Install commitlint
+        run: |
+          npm i -g @commitlint/cli @commitlint/config-conventional
+
+      # Crea la configuración de commitlint
+      #   Extiende la configuración convencional
+      #   Ignora los mensajes de commit que comienzan con "Merge"
+      #   Permite acentos y evita Título Con Mayúsculas En Cada Palabra
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.cjs << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            ignores: [(msg) => msg.startsWith('Merge ')],
+            rules: {
+              'subject-case': [2, 'never', ['sentence-case', 'start-case', 'pascal-case', 'upper-case']],
+            },
+          };
+          EOF
+
+      # Lint de commits del PR (estricto)
+      - name: Lint PR commits (strict)
+        if: ${{ inputs.strict == true && github.event_name == 'pull_request' }}
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          COMMITS=$(git log --format=%s "${BASE_SHA}..${HEAD_SHA}" || true)
+
+          if [ -z "$COMMITS" ]; then
+            echo "[INFO] No se encontraron mensajes de commit entre ${BASE_SHA}..${HEAD_SHA}"
+            exit 0
+          fi
+
+          echo "[INFO] Validando mensajes de commit:"
+          echo "$COMMITS" | npx commitlint --config commitlint.config.cjs
+
+      # Lint de título del PR
+      - name: Lint PR title
+        if: ${{ inputs.check_pr_title == true && github.event_name == 'pull_request' }}
+        run: |
+          TITLE="${{ github.event.pull_request.title }}"
+          echo "[INFO] Validando título del PR: $TITLE"
+          echo "$TITLE" | npx commitlint --config commitlint.config.cjs

@@ -28,24 +28,30 @@ on:
 jobs:
   branch-source:
     runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: read
+
     steps:
+
+      # Imponer reglas de origen para PR
       - name: Enforce PR source branch rules
         run: |
+          // Obtener la referencia de la rama base y la rama de origen
           HEAD="${{ github.head_ref }}"
           BASE="${{ github.base_ref }}"
 
+          // Expresiones regulares para validar ramas
           FEATURE_RE='${{ inputs.feature_pattern }}'
           RELEASE_RE='${{ inputs.release_pattern }}'
           HOTFIX_RE='${{ inputs.hotfix_pattern }}'
 
-          echo "[INFO] Validando origen de PR"
-          echo "   HEAD='$HEAD'"
-          echo "   BASE='$BASE'"
-          echo "   FEATURE_RE=$FEATURE_RE"
-          echo "   RELEASE_RE=$RELEASE_RE"
-          echo "   HOTFIX_RE=$HOTFIX_RE"
+          // Validar ramas
+          echo "[INFO] Validando origen de PR: HEAD='$HEAD' BASE='$BASE'"
 
           ok="false"
+
           case "$BASE" in
             main)
               if echo "$HEAD" | grep -Eq "$RELEASE_RE|$HOTFIX_RE"; then
@@ -58,7 +64,7 @@ jobs:
               fi
               ;;
             *)
-              # Para otras bases, no aplicamos restricción
+              # Para otras bases, no aplicamos restricción de ramas
               ok="true"
               ;;
           esac

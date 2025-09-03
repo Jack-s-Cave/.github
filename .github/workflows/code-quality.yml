@@ -5,28 +5,37 @@ on:
       node-version:
         type: string
         default: '20'
+        
       enforce:
-        description: "Si true, falla si no hay lint/test"
+        description: "Si enforce esta activado, falla si no hay lint/test"
         type: boolean
         default: false
 
 jobs:
   quality:
     name: Lint & tests
+    
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
-      # Si no hay package.json, pasar, a menos que enforce=true
+      # Detecta si es un proyecto Node (package.json)
       - name: Check package.json
         id: pkg
         run: |
-          if [ ! -f package.json ]; then
-            echo "found=false" >> $GITHUB_OUTPUT
-          else
+          echo "[INFO] Checking for package.json"
+          if [ -f package.json ]; then
+            echo "[INFO] Found package.json"
             echo "found=true" >> $GITHUB_OUTPUT
+          else
+            echo "found=false" >> $GITHUB_OUTPUT
           fi
 
+      # Configura Node.js
       - uses: actions/setup-node@v4
         if: steps.pkg.outputs.found == 'true'
         with:
@@ -37,40 +46,44 @@ jobs:
         if: steps.pkg.outputs.found == 'true'
         run: npm ci
 
+      # Formatea el código si hay un script de formateo
       - name: Run formatter (prettier) if present
         if: steps.pkg.outputs.found == 'true'
         run: |
           if npm run | grep -qE 'prettier|format'; then
             npm run prettier --if-present || npm run format --if-present
           else
-            echo "No formatter script."
+            echo "[INFO] No se encontró un script de formateo."
           fi
 
+      # Lint de código
       - name: Run lint if present
         if: steps.pkg.outputs.found == 'true'
         run: |
           if npm run | grep -q 'lint'; then
             npm run lint
           else
-            echo "No lint script."
+            echo "[INFO] No se encontró un script de lint."
           fi
 
+      # Pruebas de código, si hay un script de pruebas
       - name: Run tests if present
         if: steps.pkg.outputs.found == 'true'
         run: |
           if npm run | grep -q 'test'; then
             npm test
           else
-            echo "No test script."
+            echo "[INFO] No se encontró un script de pruebas."
           fi
 
+      # Si no hay package.json, pasar, a menos que enforce=true
       - name: Enforce presence if requested
         if: inputs.enforce == true
         run: |
           if [ "${{ steps.pkg.outputs.found }}" != "true" ]; then
-            echo "No package.json found but enforce=true"; exit 1
+            echo "[ERROR] No se encontró package.json pero enforce=true"; exit 1
           fi
           MISS=0
-          npm run | grep -q 'lint' || { echo "Missing lint script"; MISS=1; }
-          npm run | grep -q 'test' || { echo "Missing test script"; MISS=1; }
+          npm run | grep -q 'lint' || { echo "[ERROR] No se encontró script de lint"; MISS=1; }
+          npm run | grep -q 'test' || { echo "[ERROR] No se encontró script de pruebas"; MISS=1; }
           [ $MISS -eq 0 ] || exit 1
