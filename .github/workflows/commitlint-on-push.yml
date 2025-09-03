@@ -1,0 +1,47 @@
+name: commitlint-on-push
+on:
+  push:
+    branches: ['**'] # Aplica a todos los pushes en todas las ramas
+
+jobs:
+  commitlint:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+
+      # Instala commitlint
+      - name: Install commitlint
+        run: npm i -g @commitlint/cli @commitlint/config-conventional
+
+      # Crea la configuración de commitlint
+      #   Extiende la configuración convencional
+      #   Ignora los mensajes de commit que comienzan con "Merge"
+      #   Permite acentos y evita Título Con Mayúsculas En Cada Palabra
+      - name: Create commitlint config
+        run: |
+          cat > commitlint.config.cjs << 'EOF'
+          module.exports = {
+            extends: ['@commitlint/config-conventional'],
+            ignores: [(msg) => msg.startsWith('Merge ')],
+            rules: {
+              'subject-case': [2, 'never', ['sentence-case','start-case','pascal-case','upper-case']],
+            },
+          };
+          EOF
+
+      # Lint de commits push
+      - name: Lint pushed commits
+        run: |
+          BEFORE="${{ github.event.before }}"
+          AFTER="${{ github.sha }}"
+          if [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            git log -1 --pretty=%B | npx commitlint --config commitlint.config.cjs
+          else
+            git log --format=%s "${BEFORE}..${AFTER}" | npx commitlint --config commitlint.config.cjs
+          fi
