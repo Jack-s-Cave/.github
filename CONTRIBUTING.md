@@ -55,44 +55,51 @@ gitGraph
 
 ## 2. Convenciones de commits
 
-Todos los commits deben seguir el estándar de **Conventional Commits**.
+Todos los commits deben seguir el estándar de **Conventional Commits** definido por la organización.  
 
-Formato básico:
+El cumplimiento se valida automáticamente mediante Commitlint con hooks de Husky de forma local, luego en cada push y finalmente en cada Pull Request.
+
+### Formato básico:
 
 ```
-<tipo>: <descripción breve>
+<tipo>(scope opcional): <descripción breve>
 ```
 
-Tipos aceptados:
+> [!TIP]
+> Escriban todo su commit con minúsculas para evitar errores en sus aportes.
 
-* **feat**: nueva funcionalidad
-* **fix**: corrección de un error
-* **docs**: cambios en documentación
-* **style**: cambios de formato sin alterar lógica
-* **refactor**: cambios en el código sin modificar comportamiento
-* **test**: adición o corrección de pruebas
-* **chore**: tareas de mantenimiento (build, dependencias, etc.)
-* **ci**: cambios en configuración de integración continua
-* **build**: cambios que afectan el sistema de compilación o dependencias externas
+### Tipos aceptados:
+
+- **feat**: nueva funcionalidad
+- **fix**: corrección de un error
+- **docs**: cambios en documentación
+- **style**: cambios de formato sin alterar lógica
+- **refactor**: cambios en el código sin modificar comportamiento
+- **test**: adición o corrección de pruebas
+- **chore**: tareas de mantenimiento (build, dependencias, etc.)
+- **ci**: cambios en configuración de integración continua
+- **build**: cambios que afectan el sistema de compilación o dependencias externas
+- **revert**: reversiones de cambios anteriores
 
 ## 3. Reglas para Pull Requests
 
-* Los PRs deben ser creados desde:
+- **Los PRs deben ser creados desde:**
 
-  * `feature/*` → `develop`
-  * `release/*` → `main` y `develop`
-  * `hotfix/*` → `main` y `develop`
+  - `feature/*` → `develop`
+  - `release/*` → `main` y `develop`
+  - `hotfix/*` → `main` y `develop`
 
-* Cada PR debe:
+- **Cada PR debe:**
 
-  * Incluir una descripción clara de los cambios.
-  * Requerir al menos una aprobación de otro miembro del equipo (según CODEOWNERS).
-  * Pasar todos los checks automáticos configurados (branch rules, convenciones de commits, lint y tests si existen).
-  * Usar **solo squash merge** al integrar.
+  - Incluir una descripción clara de los cambios.
+  - Requerir al menos una aprobación de otro miembro del equipo (según CODEOWNERS).
+  - Pasar todos los checks automáticos configurados (branch rules, convenciones de commits, lint y tests si existen).
+  - Completar la plantilla proporcionada.
 
-* El **título del PR** debe seguir el formato de **Conventional Commits**, ya que será usado como el mensaje final del commit squash. 
+> [!IMPORTANT]
+> El **título del PR** debe seguir el formato de **Conventional Commits**, ya que será usado como el mensaje final del commit del merge. 
 
-  Ejemplo:
+  **Ejemplo:**
 
   ```
   feat: agregar navbar
@@ -100,7 +107,19 @@ Tipos aceptados:
   docs: actualizar guía de contribución
   ```
 
-## 4. Automatización y calidad
+## 4. Hooks de Husky
+
+El repositorio ya incluye configuración de **Husky** y **Commitlint**:
+
+- **commit-msg**: ejecuta automáticamente `commitlint` sobre cada mensaje de commit.
+- **pre-commit**: actualmente vacío, reservado para futuros checks (ej. lint-staged, tests).
+
+> [!NOTE]
+> No es necesario configurar nada adicional. Con solo instalar dependencias (`npm ci` o `npm install`) los hooks quedarán activos.
+
+Si un mensaje de commit no cumple la convención, **el commit será rechazado** con un error explicativo.
+
+## 5. Automatización y calidad
 
 * **Checks obligatorios**:
 
@@ -108,4 +127,5 @@ Tipos aceptados:
   * Validación de mensajes de commit y título del PR (commitlint).
   * Ejecución de linter y tests (cuando estén disponibles).
 
-* Solo se podrán mergear PRs que pasen correctamente todos los checks.
+>[!NOTE]
+> Solo se podrán mergear PRs que pasen correctamente todos los checks.
