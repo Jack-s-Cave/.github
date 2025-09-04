@@ -35,46 +35,53 @@ jobs:
 
     steps:
 
-      # Imponer reglas de origen para PR
+      # Validar que las ramas de origen de los PR cumplen las reglas definidas
       - name: Enforce PR source branch rules
+
+        # Solo para eventos de PR
+        if: ${{ github.event_name == 'pull_request' }}
+        
+        # Usar las variables de entorno para pasar los inputs y referencias de GitHub
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          FEATURE_RE: ${{ inputs.feature_pattern }}
+          RELEASE_RE: ${{ inputs.release_pattern }}
+          HOTFIX_RE: ${{ inputs.hotfix_pattern }}
+
+        # Ejecutar la validación
         run: |
-          // Obtener la referencia de la rama base y la rama de origen
-          HEAD="${{ github.head_ref }}"
-          BASE="${{ github.base_ref }}"
+          set -Eeuo pipefail
 
-          // Expresiones regulares para validar ramas
-          FEATURE_RE='${{ inputs.feature_pattern }}'
-          RELEASE_RE='${{ inputs.release_pattern }}'
-          HOTFIX_RE='${{ inputs.hotfix_pattern }}'
+          # Obtener la referencia de la rama base y la rama de origen
+          HEAD="${HEAD_REF}"
+          BASE="${BASE_REF}"
 
-          // Validar ramas
-          echo "[INFO] Validando origen de PR: HEAD='$HEAD' BASE='$BASE'"
+          # Validar ramas
+          echo "[INFO] Validando origen de PR: HEAD='${HEAD}' BASE='${BASE}'"
 
-          ok="false"
-
+          ok=false
           case "$BASE" in
             main)
-              if echo "$HEAD" | grep -Eq "$RELEASE_RE|$HOTFIX_RE"; then
-                ok="true"
-              fi
+              if echo "$HEAD" | grep -Eq "$RELEASE_RE|$HOTFIX_RE"; then ok=true; fi
               ;;
             develop)
-              if echo "$HEAD" | grep -Eq "$FEATURE_RE|$RELEASE_RE"; then
-                ok="true"
-              fi
+              if echo "$HEAD" | grep -Eq "$FEATURE_RE|$RELEASE_RE"; then ok=true; fi
               ;;
             *)
               # Para otras bases, no aplicamos restricción de ramas
-              ok="true"
+              ok=true
               ;;
           esac
 
-          if [ "$ok" != "true" ]; then
+          # Si no cumple, fallar el job
+          if [[ "$ok" != true ]]; then
             echo "[ERROR] Regla de origen incumplida:"
             echo "   - main solo acepta: release/x.y.z o hotfix/x.y.z"
             echo "   - develop acepta:   feature/<descripcion> o feature/TICKET-123-<descripcion> o release/x.y.z"
-            echo "   HEAD='$HEAD'  BASE='$BASE'"
+            echo "   HEAD='${HEAD}'  BASE='${BASE}'"
             exit 1
           fi
 
+          # Si todo bien, continuar
           echo "[SUCCESS] Origen de PR válido"
